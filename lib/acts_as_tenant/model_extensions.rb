@@ -28,12 +28,22 @@ module ActsAsTenant
             if options[:through]
               query_criteria = {options[:through] => {fkey.to_sym => keys}}
               query_criteria[polymorphic_type.to_sym] = ActsAsTenant.current_tenant.class.to_s if options[:polymorphic]
-              joins(options[:through]).where(query_criteria)
+              assoc = joins(options[:through]).where(query_criteria)
             else
               query_criteria = {fkey.to_sym => keys}
               query_criteria[polymorphic_type.to_sym] = ActsAsTenant.current_tenant.class.to_s if options[:polymorphic]
-              where(query_criteria)
+              assoc = where(query_criteria)
             end
+
+            if (or_options = options[:or])
+              assoc.or(self.class.where(or_options[:query])) if (or_options[:if].nil? || or_options[:if].call)
+            end
+
+            if (and_options = options[:and])
+              assoc.where(and_options[:query]) if (and_options[:if].nil? || and_options[:if].call)
+            end
+
+            assoc
           else
             all
           end
